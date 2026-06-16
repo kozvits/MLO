@@ -237,7 +237,7 @@ class PriorityEngineTest {
         val base = 1000000L
         val next = PriorityEngine.computeNextOccurrence("DAILY", base)
         assertTrue("Next occurrence should be later", next > base)
-        assertEquals(1000L * 60 * 60 * 24, next - base, 1000)
+        assertEquals(86400000.0, (next - base).toDouble(), 1000.0)
     }
 
     // ── buildFlatTree ──
