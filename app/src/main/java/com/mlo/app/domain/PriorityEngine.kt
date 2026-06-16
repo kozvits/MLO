@@ -218,8 +218,8 @@ object PriorityEngine {
         }
         if (dateMatch != null) remaining = remaining.replace(dateMatch.value, "").trim()
 
-        // Extract duration: Nmin, Nm, Nminute(s)
-        val durationRegex = Regex("""\b(\d+)\s*(мин|min|m|minute|minutes)\b""")
+        // Extract duration: Nmin, Nm, Nminute(s) — use (?!\\w) to handle non-ASCII text
+        val durationRegex = Regex("""\b(\d+)\s*(мин|min|m|minute|minutes)(?!\w)""")
         val durationMatch = durationRegex.find(remaining)
         val durationMinutes: Int? = durationMatch?.let {
             try { it.groupValues[1].toInt() } catch (e: Exception) { null }
