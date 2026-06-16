@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="green_active">#FF4CAF50</color>
+    <color name="orange_overdue">#FFFF9800</color>
+    <color name="red_overdue">#FFF44336</color>
+    <color name="blue_info">#FF2196F3</color>
+    <color name="task_completed">#FF9E9E9E</color>
+</resources>

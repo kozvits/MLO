@@ -1,0 +1,29 @@
+# Gradle
+.gradle/
+build/
+local.properties
+*.iml
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Android
+app/build/
+app/release/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Room schema
+app/schemas/
+
+# Dropbox keys (template keeps placeholders)
+*_keys.txt
