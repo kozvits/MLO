@@ -33,7 +33,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyLifeOrganized"
         tools:targetApi="34"
-        tools:ignore="MissingClass">
+        tools:ignore="MissingClass,AppLinkUrlError">
 
         <activity
             android:name=".MainActivity"
