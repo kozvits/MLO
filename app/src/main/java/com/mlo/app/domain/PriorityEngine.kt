@@ -226,8 +226,8 @@ object PriorityEngine {
         }
         if (durationMatch != null) remaining = remaining.replace(durationMatch.value, "").trim()
 
-        // Extract contexts: @Word
-        val contextRegex = Regex("""@(\w+)""")
+        // Extract contexts: @Word (Unicode-aware for Cyrillic)
+        val contextRegex = Regex("""@(\p{L}+)""")
         val contexts = contextRegex.findAll(remaining).map { it.value }.toList()
 
         // Extract name (remaining text minus contexts)
