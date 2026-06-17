@@ -23,6 +23,8 @@ fun TaskTreeScreen(
     viewModel: TaskViewModel,
     onAddTask: (Long?) -> Unit,
     onEditTask: (Long) -> Unit,
+    onAddSubTask: (TaskEntity) -> Unit,
+    onDeleteTask: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.state.collectAsState()
@@ -79,14 +81,13 @@ fun TaskTreeScreen(
         modifier = modifier
     ) { padding ->
         if (filteredTree.isEmpty()) {
-            // Empty state
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentAlignment = androidx.compose.ui.Alignment.Center
+                contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Нет задач",
                         style = MaterialTheme.typography.titleMedium,
@@ -105,7 +106,7 @@ fun TaskTreeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                contentPadding = PaddingValues(
                     start = 4.dp, end = 4.dp, top = 4.dp, bottom = 80.dp
                 )
             ) {
@@ -129,7 +130,9 @@ fun TaskTreeScreen(
                         onToggleExpand = { viewModel.toggleExpand(task.id) },
                         onClick = { onEditTask(task.id) },
                         onLongClick = { viewModel.focusTask(task.id) },
-                        onToggleComplete = { viewModel.toggleComplete(task.id) }
+                        onToggleComplete = { viewModel.toggleComplete(task.id) },
+                        onAddSubTask = { onAddSubTask(task) },
+                        onDeleteTask = { onDeleteTask(task.id) }
                     )
                 }
             }

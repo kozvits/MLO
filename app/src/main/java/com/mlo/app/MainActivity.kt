@@ -390,16 +390,48 @@ fun MainScreen(
                     0 -> TaskTreeScreen(
                         viewModel = taskViewModel,
                         onAddTask = { parentId ->
-                            showTaskEditId = parentId ?: 0L // 0L = new root task
+                            showTaskEditId = parentId ?: 0L
                         },
                         onEditTask = { taskId ->
                             showTaskEditId = taskId
+                        },
+                        onAddSubTask = { parent ->
+                            val child = com.mlo.app.data.local.TaskEntity(
+                                name = "Новая подзадача",
+                                contexts = parent.contexts,
+                                goalId = parent.goalId,
+                                flags = parent.flags,
+                                importance = parent.importance,
+                                urgency = parent.urgency,
+                                parentId = parent.id
+                            )
+                            taskViewModel.insertTask(child, parent.id)
+                        },
+                        onDeleteTask = { taskId ->
+                            taskViewModel.deleteTask(taskId)
+                            if (showTaskEditId == taskId) showTaskEditId = null
                         }
                     )
                     1 -> TodoScreen(
                         viewModel = taskViewModel,
                         onEditTask = { taskId ->
                             showTaskEditId = taskId
+                        },
+                        onAddSubTask = { parent ->
+                            val child = com.mlo.app.data.local.TaskEntity(
+                                name = "Новая подзадача",
+                                contexts = parent.contexts,
+                                goalId = parent.goalId,
+                                flags = parent.flags,
+                                importance = parent.importance,
+                                urgency = parent.urgency,
+                                parentId = parent.id
+                            )
+                            taskViewModel.insertTask(child, parent.id)
+                        },
+                        onDeleteTask = { taskId ->
+                            taskViewModel.deleteTask(taskId)
+                            if (showTaskEditId == taskId) showTaskEditId = null
                         }
                     )
                 }

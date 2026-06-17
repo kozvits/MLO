@@ -1,7 +1,8 @@
 package com.mlo.app.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,12 +17,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mlo.app.data.local.TaskEntity
 import com.mlo.app.domain.PriorityEngine
 import com.mlo.app.ui.theme.*
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TaskTreeItem(
     task: TaskEntity,
@@ -35,8 +38,12 @@ fun TaskTreeItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
     onToggleComplete: () -> Unit,
+    onAddSubTask: () -> Unit = {},
+    onDeleteTask: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     val effectiveImp = remember(task, allTasks) {
         PriorityEngine.calculateEffectiveImportance(task, allTasks)
     }
@@ -61,7 +68,10 @@ fun TaskTreeItem(
         modifier = modifier
             .fillMaxWidth()
             .padding(start = (depth * 24).dp, end = 4.dp, top = 1.dp, bottom = 1.dp)
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { showMenu = true }
+            ),
         colors = CardDefaults.cardColors(
             containerColor = when {
                 isFocused -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
@@ -181,10 +191,63 @@ fun TaskTreeItem(
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
+
+            // Context menu anchor
+            Box {
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                    offset = DpOffset(0.dp, 0.dp)
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Редактировать") },
+                        onClick = {
+                            showMenu = false
+                            onClick()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Добавить подзадачу") },
+                        onClick = {
+                            showMenu = false
+                            onAddSubTask()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.SubdirectoryArrowRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+                    if (isCompleted) {
+                        DropdownMenuItem(
+                            text = { Text("Реактивировать") },
+                            onClick = {
+                                showMenu = false
+                                onToggleComplete()
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                            }
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text("Удалить", color = MaterialTheme.colorScheme.error) },
+                        onClick = {
+                            showMenu = false
+                            onDeleteTask()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                        }
+                    )
+                }
+            }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TodoTaskItem(
     task: TaskEntity,
@@ -192,8 +255,12 @@ fun TodoTaskItem(
     allTasks: List<TaskEntity>,
     onClick: () -> Unit,
     onToggleComplete: () -> Unit,
+    onAddSubTask: () -> Unit = {},
+    onDeleteTask: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     val isOverdue = task.dueDate != null && task.dueDate < System.currentTimeMillis()
     val priorityColor = when {
         score >= 150 -> TaskPriorityCritical
@@ -206,7 +273,10 @@ fun TodoTaskItem(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 2.dp)
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { showMenu = true }
+            ),
         colors = CardDefaults.cardColors(
             containerColor = if (isOverdue)
                 RedOverdue.copy(alpha = 0.05f)
@@ -303,6 +373,46 @@ fun TodoTaskItem(
                         color = RedOverdue,
                         fontWeight = FontWeight.Bold,
                         fontSize = 9.sp
+                    )
+                }
+            }
+
+            // Context menu
+            Box {
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                    offset = DpOffset(0.dp, 0.dp)
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Редактировать") },
+                        onClick = {
+                            showMenu = false
+                            onClick()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Добавить подзадачу") },
+                        onClick = {
+                            showMenu = false
+                            onAddSubTask()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.SubdirectoryArrowRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Удалить", color = MaterialTheme.colorScheme.error) },
+                        onClick = {
+                            showMenu = false
+                            onDeleteTask()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                        }
                     )
                 }
             }
