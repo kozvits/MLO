@@ -23,6 +23,7 @@ fun ContextManagerScreen(
     val state by viewModel.state.collectAsState()
     val contexts = state.contexts
     var newContextName by remember { mutableStateOf("") }
+    var editingContext by remember { mutableStateOf<GContextModel?>(null) }
 
     Scaffold(
         topBar = {
@@ -126,11 +127,73 @@ fun ContextManagerScreen(
             items(contexts) { context ->
                 ContextCard(
                     model = context,
-                    onEdit = { /* TODO: open detail sheet */ },
+                    onEdit = { editingContext = context },
                     onDelete = { viewModel.deleteContext(context) }
                 )
             }
         }
+    }
+
+    // ── Edit Context Dialog ──
+
+    if (editingContext != null) {
+        val context = editingContext!!
+        var editName by remember(context.id) { mutableStateOf(context.name) }
+        var editLabel by remember(context.id) { mutableStateOf(context.label) }
+
+        AlertDialog(
+            onDismissRequest = { editingContext = null },
+            title = { Text("Изменить контекст") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = editName,
+                        onValueChange = { editName = it },
+                        label = { Text("Имя") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = editLabel,
+                        onValueChange = { editLabel = it },
+                        label = { Text("Отображаемое название") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (editName.isNotBlank()) {
+                            viewModel.saveContext(
+                                ContextEntity(
+                                    id = context.id,
+                                    name = editName.trim(),
+                                    label = editLabel.trim(),
+                                    color = context.color,
+                                    iconName = context.iconName,
+                                    locationLat = context.locationLat,
+                                    locationLon = context.locationLon,
+                                    locationRadiusMeters = context.locationRadiusMeters,
+                                    isLocationOnly = context.isLocationOnly,
+                                    includeIds = context.includeIds.joinToString(",")
+                                )
+                            )
+                            editingContext = null
+                        }
+                    },
+                    enabled = editName.isNotBlank()
+                ) {
+                    Text("Сохранить")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingContext = null }) {
+                    Text("Отмена")
+                }
+            }
+        )
     }
 }
 
