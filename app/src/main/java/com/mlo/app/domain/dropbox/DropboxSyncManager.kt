@@ -63,7 +63,7 @@ class DropboxSyncManager @Inject constructor(
                 .addHeader("Authorization", authHeader)
                 .addHeader("Dropbox-API-Arg", argJson)
                 .addHeader("Content-Type", "application/octet-stream")
-                .put(json.toByteArray().toRequestBody(octetMediaType))
+                .post(json.toByteArray().toRequestBody(octetMediaType))
                 .build()
 
             val response = client.newCall(request).execute()
@@ -91,7 +91,7 @@ class DropboxSyncManager @Inject constructor(
                 .url("${DropboxConfig.CONTENT_BASE_URL}files/download")
                 .addHeader("Authorization", authHeader)
                 .addHeader("Dropbox-API-Arg", gson.toJson(mapOf("path" to latestFile)))
-                .get()
+                .post("".toRequestBody(null))
                 .build()
 
             val response = client.newCall(request).execute()
