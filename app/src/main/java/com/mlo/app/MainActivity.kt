@@ -92,6 +92,7 @@ fun MainScreen(
     var showStatistics by remember { mutableStateOf(false) }
     var showProfileTemplates by remember { mutableStateOf(false) }
     var showContextManager by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
 
     // Apply default filter when coming from saved view
     var appliedFilter by remember { mutableStateOf<com.mlo.app.data.model.ViewFilter?>(null) }
@@ -174,6 +175,7 @@ fun MainScreen(
                     label = { Text("Настройки") },
                     selected = false,
                     onClick = {
+                        showSettings = true
                         scope.launch { drawerState.close() }
                     }
                 )
@@ -299,6 +301,13 @@ fun MainScreen(
         ContextManagerScreen(
             viewModel = appViewModel,
             onDismiss = { showContextManager = false }
+        )
+    }
+
+    if (showSettings) {
+        SettingsDialog(
+            viewModel = appViewModel,
+            onDismiss = { showSettings = false }
         )
     }
 }
