@@ -21,7 +21,7 @@ object DropboxConfig {
     val isTokenSet: Boolean
         get() = accessToken.isNotBlank() && accessToken != "YOUR_DROPBOX_TOKEN_HERE"
 
-    /** Dropbox API path for storing MyOrganizer backup files. */
+    /** Dropbox API path for storing MWO backup files. */
     const val BACKUP_DIR = "/MLO"
 
     /** Filename prefix for sync files. */

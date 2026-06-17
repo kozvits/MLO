@@ -132,7 +132,7 @@ fun SettingsDialog(
 
                 // About
                 Text(
-                    text = "MyOrganizer v1.0.0",
+                    text = "MWO v1.0.0",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -1,4 +1,4 @@
-# MyOrganizer — GTD / MLO Task Manager for Android
+# MWO — GTD / MLO Task Manager for Android
 
 Android-приложение для управления задачами по методологии **GTD / MyLifeOrganized (MLO)**.
 Бесплатный аналог MLO v5 — все фичи без paywall.
