@@ -1,6 +1,7 @@
 package com.mlo.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -230,7 +231,8 @@ private fun FlagEditDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text("Цвет", style = MaterialTheme.typography.labelMedium)
-                // Color picker row
+
+                // Row 1 of color picker
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -241,29 +243,22 @@ private fun FlagEditDialog(
                                 .size(28.dp)
                                 .clip(CircleShape)
                                 .background(Color(color))
-                                .then(
-                                    if (colorValue == color) Modifier
-                                    else Modifier
-                                ),
+                                .clickable { colorValue = color },
                             contentAlignment = Alignment.Center
                         ) {
                             if (colorValue == color) {
                                 Icon(
                                     Icons.Default.Check,
-                                    contentDescription = null,
+                                    contentDescription = "выбран",
                                     tint = Color.White,
                                     modifier = Modifier.size(16.dp)
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clickable { colorValue = color }
                                 )
                             }
                         }
                     }
                 }
+
+                // Row 2 of color picker
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -274,19 +269,15 @@ private fun FlagEditDialog(
                                 .size(28.dp)
                                 .clip(CircleShape)
                                 .background(Color(color))
+                                .clickable { colorValue = color },
+                            contentAlignment = Alignment.Center
                         ) {
                             if (colorValue == color) {
                                 Icon(
                                     Icons.Default.Check,
-                                    contentDescription = null,
+                                    contentDescription = "выбран",
                                     tint = Color.White,
                                     modifier = Modifier.size(16.dp)
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clickable { colorValue = color }
                                 )
                             }
                         }
@@ -321,5 +312,3 @@ private fun FlagEditDialog(
         }
     )
 }
-
-private fun Modifier.clickable(onClick: () -> Unit): Modifier = this
