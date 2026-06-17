@@ -1,5 +1,6 @@
 package com.mlo.app.ui.viewmodels
 
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mlo.app.data.local.ContextEntity
@@ -114,8 +115,8 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    fun handleAuthResult() {
-        val success = syncManager.handleAuthResult()
+    fun handleAuthResult(intent: Intent?) {
+        val success = syncManager.handleAuthResult(intent)
         _state.update { it.copy(isDropboxConnected = success, showSyncIndicator = false) }
     }
 

@@ -10,6 +10,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -131,17 +134,41 @@ fun TaskEditorScreen(
                         value = importance.toFloat(),
                         onValueChange = { importance = it.toInt() },
                         valueRange = 0f..200f,
-                        steps = 3
+                        steps = 7
+                    )
+                    // Gradient scale bar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(MaterialTheme.shapes.extraSmall)
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFFBBDEFB), // light blue
+                                        Color(0xFF1565C0), // mid blue
+                                        Color(0xFF0D47A1)  // deep blue
+                                    )
+                                )
+                            )
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        listOf(0, 50, 100, 150, 200).forEach { v ->
+                        Text("0", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("100", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("200", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        listOf(0, 25, 50, 75, 100, 125, 150, 175, 200).forEach { v ->
                             TextButton(
                                 onClick = { importance = v },
-                                modifier = Modifier.height(28.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                                modifier = Modifier.height(24.dp),
+                                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp)
                             ) {
                                 Text("$v", style = MaterialTheme.typography.labelSmall)
                             }
@@ -159,17 +186,41 @@ fun TaskEditorScreen(
                         value = urgency.toFloat(),
                         onValueChange = { urgency = it.toInt() },
                         valueRange = 0f..200f,
-                        steps = 3
+                        steps = 7
+                    )
+                    // Gradient scale bar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(MaterialTheme.shapes.extraSmall)
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFFBBDEFB), // light blue
+                                        Color(0xFF1565C0), // mid blue
+                                        Color(0xFF0D47A1)  // deep blue
+                                    )
+                                )
+                            )
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        listOf(0, 50, 100, 150, 200).forEach { v ->
+                        Text("0", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("100", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("200", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        listOf(0, 25, 50, 75, 100, 125, 150, 175, 200).forEach { v ->
                             TextButton(
                                 onClick = { urgency = v },
-                                modifier = Modifier.height(28.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                                modifier = Modifier.height(24.dp),
+                                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp)
                             ) {
                                 Text("$v", style = MaterialTheme.typography.labelSmall)
                             }

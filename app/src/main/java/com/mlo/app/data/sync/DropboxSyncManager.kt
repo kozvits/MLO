@@ -1,6 +1,7 @@
 package com.mlo.app.data.sync
 
 import android.content.Context
+import android.content.Intent
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,12 +33,11 @@ class DropboxSyncManager @Inject constructor(
     }
 
     /**
-     * Handle OAuth result (called from Activity).
+     * Handle OAuth result (called from Activity with the incoming intent).
      */
-    fun handleAuthResult(): Boolean {
-        val success = dropboxClient.handleAuthResult()
+    fun handleAuthResult(intent: Intent?): Boolean {
+        val success = dropboxClient.handleAuthResult(intent)
         if (success) {
-            // Schedule periodic sync after successful auth
             DropboxSyncWorker.schedule(context)
         }
         return success

@@ -33,30 +33,25 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyLifeOrganized"
         tools:targetApi="34"
-        tools:ignore="MissingClass,AppLinkUrlError">
+        tools:ignore="AppLinkUrlError">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.MyLifeOrganized">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-
-        <!-- Dropbox OAuth Activity -->
-        <activity
-            android:name="com.dropbox.core.android.AuthActivity"
-            android:configChanges="orientation|keyboard"
-            android:exported="true">
+            <!-- Dropbox OAuth2 callback: db-APP_KEY://1/connect#access_token=... -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="db-APP_KEY"
-                    android:host="authorize" />
+                    android:host="1" />
             </intent-filter>
         </activity>
 

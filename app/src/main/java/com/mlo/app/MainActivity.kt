@@ -39,8 +39,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Handle Dropbox auth result
-        appViewModel.handleAuthResult()
+        // Handle Dropbox auth result (from OAuth redirect)
+        appViewModel.handleAuthResult(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Handle Dropbox auth result when Activity is re-used (singleTask)
+        appViewModel.handleAuthResult(intent)
     }
 }
 
