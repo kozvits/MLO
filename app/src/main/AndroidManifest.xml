@@ -24,8 +24,7 @@
     <!-- Boot completed for rescheduling workers -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- Quick Settings Tile -->
-    <uses-permission android:name="android.permission.BIND_QUICK_SETTINGS_TILE" />
+    <!-- Quick Settings Tile (granted automatically by the system for TileService) -->
 
     <!-- Schedule exact alarms for reminders -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"
