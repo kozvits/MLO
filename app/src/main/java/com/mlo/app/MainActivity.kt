@@ -96,6 +96,9 @@ fun MainScreen(
     var showGoalManager by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
 
+    // Task edit dialog: null = closed, 0L = create new, >0 = edit existing
+    var showTaskEditId by remember { mutableStateOf<Long?>(null) }
+
     // Dropbox dialogs
     var showDropboxTokenDialog by remember { mutableStateOf(false) }
     var showSyncIntervalDialog by remember { mutableStateOf(false) }
@@ -387,19 +390,16 @@ fun MainScreen(
                     0 -> TaskTreeScreen(
                         viewModel = taskViewModel,
                         onAddTask = { parentId ->
-                            val newTask = com.mlo.app.data.local.TaskEntity(name = "Новая задача", parentId = parentId)
-                            taskViewModel.insertTask(newTask, parentId)
+                            showTaskEditId = parentId ?: 0L // 0L = new root task
                         },
                         onEditTask = { taskId ->
-                            taskViewModel.loadTaskFlags(taskId)
-                            taskViewModel.loadTaskReminders(taskId)
+                            showTaskEditId = taskId
                         }
                     )
                     1 -> TodoScreen(
                         viewModel = taskViewModel,
                         onEditTask = { taskId ->
-                            taskViewModel.loadTaskFlags(taskId)
-                            taskViewModel.loadTaskReminders(taskId)
+                            showTaskEditId = taskId
                         }
                     )
                 }
@@ -463,6 +463,16 @@ fun MainScreen(
         SettingsDialog(
             viewModel = appViewModel,
             onDismiss = { showSettings = false }
+        )
+    }
+
+    // ── Task Edit Dialog ──
+
+    showTaskEditId?.let { taskId ->
+        TaskEditDialog(
+            taskViewModel = taskViewModel,
+            taskId = if (taskId == 0L) null else taskId, // 0L = create new, otherwise edit existing
+            onDismiss = { showTaskEditId = null }
         )
     }
 
