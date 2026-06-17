@@ -119,6 +119,22 @@ class TaskViewModel @Inject constructor(
         }
     }
 
+    fun saveTask(task: TaskEntity) {
+        viewModelScope.launch {
+            if (task.id == 0L) {
+                val sortOrder = if (task.parentId != null) {
+                    repository.getMaxChildSortOrder(task.parentId!!) + 1
+                } else {
+                    repository.getMaxRootSortOrder() + 1
+                }
+                repository.insertTask(task.copy(sortOrder = sortOrder))
+            } else {
+                repository.updateTask(task.copy(updatedAt = System.currentTimeMillis()))
+            }
+            closeEditor()
+        }
+    }
+
     fun updateTask(task: TaskEntity) {
         viewModelScope.launch {
             repository.updateTask(task.copy(updatedAt = System.currentTimeMillis()))

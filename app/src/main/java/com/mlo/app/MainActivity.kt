@@ -125,7 +125,7 @@ fun MloMainScreen() {
             allContexts = contextNames,
             allGoals = goalsList,
             allTasks = taskState.allTasks,
-            onSave = { taskViewModel.updateTask(it) },
+            onSave = { taskViewModel.saveTask(it) },
             onDelete = {
                 taskState.editorTask?.let { taskViewModel.deleteTask(it.id) }
                 taskViewModel.closeEditor()
