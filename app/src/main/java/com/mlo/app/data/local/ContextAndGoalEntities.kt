@@ -24,6 +24,9 @@ interface ContextDao {
     @Query("SELECT * FROM contexts WHERE id = :id")
     suspend fun getContextById(id: Long): ContextEntity?
 
+    @Query("SELECT * FROM contexts WHERE name = :name LIMIT 1")
+    suspend fun getContextByName(name: String): ContextEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(context: ContextEntity): Long
 
@@ -88,6 +91,9 @@ interface GoalDao {
 
     @Query("SELECT * FROM goals WHERE id = :id")
     suspend fun getGoalById(id: Long): GoalEntity?
+
+    @Query("SELECT * FROM goals WHERE name = :name LIMIT 1")
+    suspend fun getGoalByName(name: String): GoalEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(goal: GoalEntity): Long

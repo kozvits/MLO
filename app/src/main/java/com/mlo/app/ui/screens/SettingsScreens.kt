@@ -20,6 +20,7 @@ import com.mlo.app.ui.viewmodels.AppViewModel
 fun SettingsDialog(
     viewModel: AppViewModel,
     onDismiss: () -> Unit,
+    onRequestImportCsv: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.state.collectAsState()
@@ -82,6 +83,21 @@ fun SettingsDialog(
                     Icon(Icons.Default.Flag, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Управление целями")
+                }
+
+                HorizontalDivider()
+
+                // Import
+                Text("Импорт", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                OutlinedButton(
+                    onClick = {
+                        onDismiss()
+                        onRequestImportCsv()
+                    }
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Импорт из Toodledo CSV")
                 }
 
                 HorizontalDivider()

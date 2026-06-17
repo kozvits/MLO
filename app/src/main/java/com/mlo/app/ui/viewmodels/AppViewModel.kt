@@ -1,12 +1,14 @@
 package com.mlo.app.ui.viewmodels
 
 import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mlo.app.data.local.ContextEntity
 import com.mlo.app.data.local.GoalEntity
 import com.mlo.app.data.repository.TaskRepository
 import com.mlo.app.data.sync.DropboxSyncManager
+import com.mlo.app.data.sync.ToodledoImporter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -20,13 +22,15 @@ data class AppUiState(
     val showSyncIndicator: Boolean = false,
     val showSettingsDialog: Boolean = false,
     val showContextManager: Boolean = false,
-    val showGoalEditor: Boolean = false
+    val showGoalEditor: Boolean = false,
+    val importResult: String? = null
 )
 
 @HiltViewModel
 class AppViewModel @Inject constructor(
     private val repository: TaskRepository,
-    private val syncManager: DropboxSyncManager
+    private val syncManager: DropboxSyncManager,
+    private val toodledoImporter: ToodledoImporter
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppUiState())
@@ -118,6 +122,28 @@ class AppViewModel @Inject constructor(
     fun handleAuthResult(intent: Intent?) {
         val success = syncManager.handleAuthResult(intent)
         _state.update { it.copy(isDropboxConnected = success, showSyncIndicator = false) }
+    }
+
+    // ── Toodledo Import ──
+
+    fun importFromCsv(uri: Uri) {
+        viewModelScope.launch {
+            val result = toodledoImporter.importFromUri(uri)
+            val msg = buildString {
+                append("Импорт завершён: ${result.tasksInserted} задач")
+                if (result.contextsCreated > 0) append(", ${result.contextsCreated} контекстов")
+                if (result.goalsCreated > 0) append(", ${result.goalsCreated} целей")
+                if (result.errors.isNotEmpty()) {
+                    append("\nОшибки (${result.errors.size}): ")
+                    append(result.errors.take(3).joinToString("; "))
+                }
+            }
+            _state.update { it.copy(importResult = msg) }
+        }
+    }
+
+    fun clearImportResult() {
+        _state.update { it.copy(importResult = null) }
     }
 
     // ── Dialogs ──

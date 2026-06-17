@@ -1,9 +1,13 @@
 package com.mlo.app
 
+import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -71,6 +75,15 @@ fun MloMainScreen() {
     }
     val goalsList = remember(appState.goals) {
         appState.goals.map { it.id to it.name }
+    }
+
+    // File picker for Toodledo CSV import
+    val csvImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            appViewModel.importFromCsv(uri)
+        }
     }
 
     Scaffold(
@@ -145,7 +158,24 @@ fun MloMainScreen() {
     if (appState.showSettingsDialog) {
         SettingsDialog(
             viewModel = appViewModel,
-            onDismiss = { appViewModel.hideSettings() }
+            onDismiss = { appViewModel.hideSettings() },
+            onRequestImportCsv = {
+                csvImportLauncher.launch(arrayOf("text/*", "*/*"))
+            }
+        )
+    }
+
+    // ── Import result dialog ──
+    appState.importResult?.let { result ->
+        AlertDialog(
+            onDismissRequest = { appViewModel.clearImportResult() },
+            title = { Text("Импорт Toodledo") },
+            text = { Text(result) },
+            confirmButton = {
+                TextButton(onClick = { appViewModel.clearImportResult() }) {
+                    Text("OK")
+                }
+            }
         )
     }
 
