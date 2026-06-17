@@ -1,12 +1,15 @@
 package com.mlo.app.ui.viewmodels
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.*
 import com.mlo.app.data.local.*
 import com.mlo.app.data.model.*
 import com.mlo.app.data.repository.TaskRepository
 import com.mlo.app.domain.ProfileTemplateData
+import com.mlo.app.domain.dropbox.DropboxConfig
 import com.mlo.app.domain.dropbox.DropboxSyncManager
 import com.mlo.app.domain.dropbox.SyncData
 import com.mlo.app.domain.dropbox.SyncTask
@@ -16,9 +19,11 @@ import com.mlo.app.domain.dropbox.SyncFlag
 import com.mlo.app.domain.dropbox.SyncView
 import com.mlo.app.domain.notification.GeofenceSyncWorker
 import com.mlo.app.domain.notification.ReminderCheckWorker
+import com.mlo.app.data.sync.DropboxSyncWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 data class AppUiState(
@@ -32,6 +37,8 @@ data class AppUiState(
     val lastSyncTime: Long? = null,
     val dropboxSyncError: String? = null,
     val isDropboxSyncing: Boolean = false,
+    val dropboxTokenSet: Boolean = false,
+    val syncIntervalMinutes: Int = 0, // 0 = manual
     val error: String? = null
 )
 
@@ -42,12 +49,80 @@ class AppViewModel @Inject constructor(
     private val dropboxSyncManager: DropboxSyncManager
 ) : AndroidViewModel(application) {
 
+    private val prefs = application.getSharedPreferences("myorganizer_prefs", Context.MODE_PRIVATE)
+
     private val _state = MutableStateFlow(AppUiState())
     val state: StateFlow<AppUiState> = _state.asStateFlow()
 
     init {
+        loadSavedToken()
+        loadSavedSyncInterval()
         loadData()
     }
+
+    // ── Token persistence ──
+
+    private fun loadSavedToken() {
+        val savedToken = prefs.getString("dropbox_token", null)
+        if (!savedToken.isNullOrBlank()) {
+            DropboxConfig.setToken(savedToken)
+            _state.update { it.copy(dropboxTokenSet = true) }
+            // Auto-test connection
+            connectDropbox()
+        }
+    }
+
+    fun saveDropboxToken(token: String) {
+        prefs.edit().putString("dropbox_token", token).apply()
+        DropboxConfig.setToken(token)
+        _state.update { it.copy(dropboxTokenSet = true) }
+    }
+
+    fun clearDropboxToken() {
+        prefs.edit().remove("dropbox_token").apply()
+        DropboxConfig.setToken("YOUR_DROPBOX_TOKEN_HERE")
+        _state.update { it.copy(dropboxTokenSet = false) }
+    }
+
+    // ── Sync interval persistence ──
+
+    private fun loadSavedSyncInterval() {
+        val savedInterval = prefs.getInt("sync_interval_minutes", 0)
+        _state.update { it.copy(syncIntervalMinutes = savedInterval) }
+        if (savedInterval > 0 && DropboxConfig.isTokenSet) {
+            schedulePeriodicSync(savedInterval)
+        }
+    }
+
+    fun setSyncInterval(minutes: Int) {
+        prefs.edit().putInt("sync_interval_minutes", minutes).apply()
+        _state.update { it.copy(syncIntervalMinutes = minutes) }
+        val ctx = getApplication<Application>()
+        WorkManager.getInstance(ctx).cancelUniqueWork("dropbox_periodic_sync")
+        if (minutes > 0 && DropboxConfig.isTokenSet) {
+            schedulePeriodicSync(minutes)
+        }
+    }
+
+    private fun schedulePeriodicSync(minutes: Int) {
+        val ctx = getApplication<Application>()
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+        val request = PeriodicWorkRequestBuilder<DropboxSyncWorker>(
+            minutes.toLong(), TimeUnit.MINUTES
+        )
+            .setConstraints(constraints)
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
+            .build()
+        WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(
+            "dropbox_periodic_sync",
+            ExistingPeriodicWorkPolicy.REPLACE,
+            request
+        )
+    }
+
+    // ── Data loading ──
 
     private fun loadData() {
         viewModelScope.launch {
@@ -299,10 +374,19 @@ class AppViewModel @Inject constructor(
 
     fun connectDropbox() {
         viewModelScope.launch {
+            if (!DropboxConfig.isTokenSet) {
+                _state.update { it.copy(dropboxSyncError = "Сначала введите токен доступа") }
+                return@launch
+            }
             _state.update { it.copy(isDropboxSyncing = true, dropboxSyncError = null) }
             val result = dropboxSyncManager.testConnection()
             result.onSuccess {
                 _state.update { it.copy(isDropboxConnected = true, isDropboxSyncing = false) }
+                // Reschedule periodic sync if interval was set
+                val interval = _state.value.syncIntervalMinutes
+                if (interval > 0) {
+                    schedulePeriodicSync(interval)
+                }
             }.onFailure { error ->
                 _state.update {
                     it.copy(
@@ -316,11 +400,24 @@ class AppViewModel @Inject constructor(
     }
 
     fun disconnectDropbox() {
-        _state.update { it.copy(isDropboxConnected = false, lastSyncTime = null, dropboxSyncError = null) }
+        val ctx = getApplication<Application>()
+        WorkManager.getInstance(ctx).cancelUniqueWork("dropbox_periodic_sync")
+        clearDropboxToken()
+        _state.update {
+            it.copy(
+                isDropboxConnected = false,
+                lastSyncTime = null,
+                dropboxSyncError = null
+            )
+        }
     }
 
     fun syncNow() {
         viewModelScope.launch {
+            if (!DropboxConfig.isTokenSet) {
+                _state.update { it.copy(dropboxSyncError = "Сначала введите токен доступа") }
+                return@launch
+            }
             _state.update { it.copy(isDropboxSyncing = true, dropboxSyncError = null) }
             try {
                 // 1. Gather all local data
@@ -405,12 +502,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    // ── Navigation stubs from Settings ──
-
-    fun showContextManager() { /* handled by MainActivity state */ }
-    fun showGoalEditor() { /* handled by MainActivity state */ }
-
-    // ── Context CRUD (from Settings) ──
+    // ── Context CRUD ──
 
     fun createContext(name: String) {
         viewModelScope.launch {
@@ -437,7 +529,7 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    // ── Goal CRUD (from Settings) ──
+    // ── Goal CRUD ──
 
     fun createGoal(name: String) {
         viewModelScope.launch {

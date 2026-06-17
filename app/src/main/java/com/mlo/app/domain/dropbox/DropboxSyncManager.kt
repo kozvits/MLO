@@ -31,7 +31,7 @@ class DropboxSyncManager @Inject constructor(
         .writeTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    private val authHeader get() = "Bearer ${DropboxConfig.ACCESS_TOKEN}"
+    private val authHeader get() = "Bearer ${DropboxConfig.accessToken}"
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
     private val octetMediaType = "application/octet-stream".toMediaType()
 

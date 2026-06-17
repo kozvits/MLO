@@ -12,11 +12,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.launch
 import com.mlo.app.domain.notification.GeofenceSyncWorker
 import com.mlo.app.ui.screens.*
 import com.mlo.app.ui.theme.MloTheme
@@ -43,7 +45,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Handle deep link / intent actions
         val taskId = intent?.getLongExtra("taskId", -1L) ?: -1L
         val action = intent?.getStringExtra("action")
 
@@ -86,13 +87,18 @@ fun MainScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
 
-    // Dialog states for new feature screens
+    // Dialog states
     var showFlagManager by remember { mutableStateOf(false) }
     var showViewFilter by remember { mutableStateOf(false) }
     var showStatistics by remember { mutableStateOf(false) }
     var showProfileTemplates by remember { mutableStateOf(false) }
     var showContextManager by remember { mutableStateOf(false) }
+    var showGoalManager by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+
+    // Dropbox dialogs
+    var showDropboxTokenDialog by remember { mutableStateOf(false) }
+    var showSyncIntervalDialog by remember { mutableStateOf(false) }
 
     // Apply default filter when coming from saved view
     var appliedFilter by remember { mutableStateOf<com.mlo.app.data.model.ViewFilter?>(null) }
@@ -123,12 +129,38 @@ fun MainScreen(
                 )
                 HorizontalDivider()
 
+                // ── Tools section ──
+                Text(
+                    "Инструменты",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+
                 NavigationDrawerItem(
                     icon = { Icon(Icons.Default.Flag, contentDescription = null) },
                     label = { Text("Управление флагами") },
                     selected = false,
                     onClick = {
                         showFlagManager = true
+                        scope.launch { drawerState.close() }
+                    }
+                )
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Default.Label, contentDescription = null) },
+                    label = { Text("Управление контекстами") },
+                    selected = false,
+                    onClick = {
+                        showContextManager = true
+                        scope.launch { drawerState.close() }
+                    }
+                )
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Default.Flag, contentDescription = null) },
+                    label = { Text("Управление целями") },
+                    selected = false,
+                    onClick = {
+                        showGoalManager = true
                         scope.launch { drawerState.close() }
                     }
                 )
@@ -142,16 +174,6 @@ fun MainScreen(
                     }
                 )
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.Assessment, contentDescription = null) },
-                    label = { Text("Статистика") },
-                    selected = false,
-                    onClick = {
-                        showStatistics = true
-                        appViewModel.refreshStatistics()
-                        scope.launch { drawerState.close() }
-                    }
-                )
-                NavigationDrawerItem(
                     icon = { Icon(Icons.Default.AutoAwesome, contentDescription = null) },
                     label = { Text("Шаблоны профилей") },
                     selected = false,
@@ -161,15 +183,142 @@ fun MainScreen(
                     }
                 )
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
-                    label = { Text("Контексты и локации") },
+                    icon = { Icon(Icons.Default.Assessment, contentDescription = null) },
+                    label = { Text("Статистика") },
                     selected = false,
                     onClick = {
-                        showContextManager = true
+                        showStatistics = true
+                        appViewModel.refreshStatistics()
                         scope.launch { drawerState.close() }
                     }
                 )
+
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                // ── Sync section ──
+                Text(
+                    "Синхронизация",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+
+                // Connection status
+                if (appState.isDropboxConnected) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.CloudDone,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Dropbox подключён",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.CloudOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Dropbox не подключён",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Connect / Disconnect button
+                if (appState.isDropboxConnected) {
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.LinkOff, contentDescription = null) },
+                        label = { Text("Отключить Dropbox") },
+                        selected = false,
+                        onClick = {
+                            appViewModel.disconnectDropbox()
+                            scope.launch { drawerState.close() }
+                        }
+                    )
+                } else {
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.CloudUpload, contentDescription = null) },
+                        label = { Text("Подключить Dropbox") },
+                        selected = false,
+                        onClick = {
+                            if (appState.dropboxTokenSet) {
+                                appViewModel.connectDropbox()
+                            } else {
+                                showDropboxTokenDialog = true
+                            }
+                            scope.launch { drawerState.close() }
+                        }
+                    )
+                }
+
+                // Sync Now button (only when connected)
+                if (appState.isDropboxConnected) {
+                    NavigationDrawerItem(
+                        icon = {
+                            if (appState.isDropboxSyncing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(Icons.Default.Sync, contentDescription = null)
+                            }
+                        },
+                        label = { Text("Синхронизировать сейчас") },
+                        selected = false,
+                        onClick = {
+                            appViewModel.syncNow()
+                            scope.launch { drawerState.close() }
+                        }
+                    )
+                }
+
+                // Sync interval setting
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Default.Timer, contentDescription = null) },
+                    label = {
+                        val intervalLabel = when (appState.syncIntervalMinutes) {
+                            0 -> "Интервал: вручную"
+                            15 -> "Интервал: 15 мин"
+                            30 -> "Интервал: 30 мин"
+                            60 -> "Интервал: 1 час"
+                            240 -> "Интервал: 4 часа"
+                            else -> "Интервал: ${appState.syncIntervalMinutes} мин"
+                        }
+                        Text(intervalLabel)
+                    },
+                    selected = false,
+                    onClick = {
+                        showSyncIntervalDialog = true
+                        scope.launch { drawerState.close() }
+                    }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                // Settings
                 NavigationDrawerItem(
                     icon = { Icon(Icons.Default.Settings, contentDescription = null) },
                     label = { Text("Настройки") },
@@ -194,7 +343,6 @@ fun MainScreen(
                     },
                     title = { Text(if (selectedTab == 0) "Схема" else "To-Do") },
                     actions = {
-                        // Filter indicator
                         if (appliedFilter != null) {
                             IconButton(onClick = { appliedFilter = null }) {
                                 Icon(
@@ -304,10 +452,110 @@ fun MainScreen(
         )
     }
 
+    if (showGoalManager) {
+        GoalManagerDialog(
+            viewModel = appViewModel,
+            onDismiss = { showGoalManager = false }
+        )
+    }
+
     if (showSettings) {
         SettingsDialog(
             viewModel = appViewModel,
             onDismiss = { showSettings = false }
+        )
+    }
+
+    // ── Dropbox Token Dialog ──
+
+    if (showDropboxTokenDialog) {
+        var tokenInput by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showDropboxTokenDialog = false },
+            title = { Text("Подключение к Dropbox") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Введите токен доступа Dropbox:",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    OutlinedTextField(
+                        value = tokenInput,
+                        onValueChange = { tokenInput = it },
+                        label = { Text("Access Token") },
+                        placeholder = { Text("sl.xxxxxxxx...") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        "Токен можно получить в Dropbox App Console (https://www.dropbox.com/developers/apps).",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (tokenInput.isNotBlank()) {
+                            appViewModel.saveDropboxToken(tokenInput.trim())
+                            appViewModel.connectDropbox()
+                            showDropboxTokenDialog = false
+                        }
+                    },
+                    enabled = tokenInput.isNotBlank()
+                ) {
+                    Text("Подключить")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDropboxTokenDialog = false }) {
+                    Text("Отмена")
+                }
+            }
+        )
+    }
+
+    // ── Sync Interval Dialog ──
+
+    if (showSyncIntervalDialog) {
+        val options = listOf(
+            0 to "Вручную",
+            15 to "Каждые 15 минут",
+            30 to "Каждые 30 минут",
+            60 to "Каждый час",
+            240 to "Каждые 4 часа"
+        )
+        AlertDialog(
+            onDismissRequest = { showSyncIntervalDialog = false },
+            title = { Text("Интервал синхронизации") },
+            text = {
+                Column {
+                    options.forEach { (minutes, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = appState.syncIntervalMinutes == minutes,
+                                onClick = {
+                                    appViewModel.setSyncInterval(minutes)
+                                    showSyncIntervalDialog = false
+                                }
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(label, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSyncIntervalDialog = false }) {
+                    Text("Закрыть")
+                }
+            }
         )
     }
 }

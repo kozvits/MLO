@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mlo.app.data.local.ContextEntity
 import com.mlo.app.data.local.ContextHourEntity
+import com.mlo.app.data.local.GoalEntity
 import com.mlo.app.ui.viewmodels.AppViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,38 +52,65 @@ fun SettingsDialog(
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { viewModel.syncNow() }) {
+                        OutlinedButton(
+                            onClick = { viewModel.syncNow() },
+                            enabled = !state.isDropboxSyncing
+                        ) {
                             Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Синхронизировать")
+                            Text(if (state.isDropboxSyncing) "Синхронизация..." else "Синхронизировать")
                         }
                         TextButton(onClick = { viewModel.disconnectDropbox() }) {
                             Text("Отключить")
                         }
                     }
+                } else if (state.isDropboxSyncing) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Подключение...")
+                    }
                 } else {
-                    Button(onClick = { viewModel.connectDropbox() }) {
+                    TextButton(onClick = { viewModel.connectDropbox() }) {
                         Icon(Icons.Default.CloudUpload, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text("Подключить Dropbox")
                     }
                 }
 
-                HorizontalDivider()
-
-                // Context management
-                Text("Контексты", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                TextButton(onClick = { viewModel.showContextManager(); onDismiss() }) {
-                    Icon(Icons.Default.Label, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Управление контекстами")
+                state.dropboxSyncError?.let { error ->
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
 
-                // Goals
-                TextButton(onClick = { viewModel.showGoalEditor(); onDismiss() }) {
-                    Icon(Icons.Default.Flag, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Управление целями")
+                HorizontalDivider()
+
+                // Sync interval
+                Text("Интервал синхронизации", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                val intervalLabel = when (state.syncIntervalMinutes) {
+                    0 -> "Вручную"
+                    15 -> "15 мин"
+                    30 -> "30 мин"
+                    60 -> "1 час"
+                    240 -> "4 часа"
+                    else -> "${state.syncIntervalMinutes} мин"
+                }
+                Text(
+                    text = "Текущий: $intervalLabel",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                // Inline interval selector
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf(0 to "Вручную", 15 to "15м", 30 to "30м", 60 to "1ч", 240 to "4ч").forEach { (min, label) ->
+                        FilterChip(
+                            selected = state.syncIntervalMinutes == min,
+                            onClick = { viewModel.setSyncInterval(min) },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) }
+                        )
+                    }
                 }
 
                 HorizontalDivider()
@@ -104,7 +132,7 @@ fun SettingsDialog(
 
                 // About
                 Text(
-                    text = "MyLifeOrganized v1.0.0",
+                    text = "MyOrganizer v1.0.0",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
