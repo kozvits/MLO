@@ -2,7 +2,6 @@ package com.mlo.app.domain
 
 import com.mlo.app.data.local.TaskEntity
 import com.mlo.app.data.model.PriorityConfig
-import com.mlo.app.data.model.TaskStatus
 import java.util.Calendar
 
 /**

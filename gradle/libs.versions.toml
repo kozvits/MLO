@@ -15,8 +15,12 @@ work = "2.9.0"
 coroutines = "1.7.3"
 gson = "2.10.1"
 play-services-location = "21.0.1"
+play-services-auth = "20.7.0"
 activity-compose = "1.8.2"
 core-ktx = "1.12.0"
+retrofit = "2.9.0"
+okhttp = "4.12.0"
+glance = "1.0.0"
 
 [libraries]
 # Core
@@ -60,8 +64,15 @@ coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutin
 # Gson
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 
+# OkHttp
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+
 # Play Services Location
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "play-services-location" }
+
+# Glance (Widgets)
+glance = { group = "androidx.glance", name = "glance", version.ref = "glance" }
+glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 
 # Testing
 junit = { group = "junit", name = "junit", version = "4.13.2" }

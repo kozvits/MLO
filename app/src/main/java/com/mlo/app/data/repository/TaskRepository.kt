@@ -10,7 +10,12 @@ class TaskRepository @Inject constructor(
     private val taskDao: TaskDao,
     private val contextDao: ContextDao,
     private val contextHourDao: ContextHourDao,
-    private val goalDao: GoalDao
+    private val goalDao: GoalDao,
+    private val flagDao: FlagDao,
+    private val taskFlagDao: TaskFlagDao,
+    private val reminderDao: ReminderDao,
+    private val profileTemplateDao: ProfileTemplateDao,
+    private val viewDao: ViewDao
 ) {
 
     // ── Task operations ──
@@ -23,37 +28,29 @@ class TaskRepository @Inject constructor(
 
     suspend fun getTaskById(id: Long): TaskEntity? = taskDao.getTaskById(id)
 
-    fun getTaskByIdFlow(id: Long): Flow<TaskEntity?> = taskDao.getTaskByIdFlow(id)
+    suspend fun getAllTasksSync(): List<TaskEntity> = taskDao.getAllTasksSync()
 
-    fun getActiveTasks(): Flow<List<TaskEntity>> = taskDao.getActiveTasks()
+    suspend fun getMaxRootSortOrder(): Int? = taskDao.getMaxRootSortOrder()
+
+    suspend fun getMaxChildSortOrder(parentId: Long): Int? = taskDao.getMaxChildSortOrder(parentId)
 
     suspend fun insertTask(task: TaskEntity): Long = taskDao.insertTask(task)
 
     suspend fun updateTask(task: TaskEntity) = taskDao.updateTask(task)
 
-    suspend fun deleteTask(task: TaskEntity) = taskDao.safeDeleteTask(task.id)
+    suspend fun deleteTaskById(id: Long) = taskDao.deleteTaskById(id)
 
-    suspend fun deleteTaskById(id: Long) = taskDao.safeDeleteTask(id)
-
-    suspend fun toggleComplete(id: Long) = taskDao.toggleComplete(id)
-
-    suspend fun moveTask(taskId: Long, newParentId: Long?, sortOrder: Int) {
-        taskDao.moveTask(taskId, newParentId, sortOrder)
+    suspend fun toggleComplete(id: Long) {
+        val task = taskDao.getTaskById(id) ?: return
+        val newStatus = if (task.status == "COMPLETED") "ACTIVE" else "COMPLETED"
+        taskDao.updateTask(task.copy(status = newStatus, updatedAt = System.currentTimeMillis()))
     }
-
-    fun searchTasks(query: String): Flow<List<TaskEntity>> = taskDao.searchTasks(query)
-
-    suspend fun getAllTasksSync(): List<TaskEntity> = taskDao.getAllTasksSync()
-
-    suspend fun insertTasks(tasks: List<TaskEntity>) = taskDao.insertTasks(tasks)
-
-    suspend fun getMaxRootSortOrder(): Int = taskDao.getMaxRootSortOrder() ?: 0
-
-    suspend fun getMaxChildSortOrder(parentId: Long): Int = taskDao.getMaxChildSortOrder(parentId) ?: 0
 
     // ── Context operations ──
 
     fun getAllContexts(): Flow<List<ContextEntity>> = contextDao.getAllContexts()
+
+    suspend fun getAllContextsSync(): List<ContextEntity> = contextDao.getAllContextsSync()
 
     suspend fun getContextById(id: Long): ContextEntity? = contextDao.getContextById(id)
 
@@ -63,19 +60,24 @@ class TaskRepository @Inject constructor(
 
     suspend fun deleteContext(context: ContextEntity) = contextDao.delete(context)
 
-    suspend fun getContextHours(contextId: Long): List<ContextHourEntity> =
+    // ── Context Hour operations ──
+
+    suspend fun getHoursForContext(contextId: Long): List<ContextHourEntity> =
         contextHourDao.getHoursForContext(contextId)
 
-    fun getAllContextHours(): Flow<List<ContextHourEntity>> = contextHourDao.getAllContextHours()
+    fun getAllContextHours(): Flow<List<ContextHourEntity>> =
+        contextHourDao.getAllContextHours()
 
     suspend fun saveContextHours(contextId: Long, hours: List<ContextHourEntity>) {
         contextHourDao.deleteForContext(contextId)
-        contextHourDao.insertAll(hours.map { it.copy(contextId = contextId) })
+        contextHourDao.insertAll(hours)
     }
 
     // ── Goal operations ──
 
     fun getAllGoals(): Flow<List<GoalEntity>> = goalDao.getAllGoals()
+
+    suspend fun getAllGoalsSync(): List<GoalEntity> = goalDao.getAllGoalsSync()
 
     suspend fun getGoalById(id: Long): GoalEntity? = goalDao.getGoalById(id)
 
@@ -85,7 +87,72 @@ class TaskRepository @Inject constructor(
 
     suspend fun deleteGoal(goal: GoalEntity) = goalDao.delete(goal)
 
-    // ── Merge for sync ──
+    // ── Flag operations ──
 
-    suspend fun mergeTasks(tasks: List<TaskEntity>) = taskDao.mergeTasks(tasks)
+    fun getAllFlags(): Flow<List<FlagEntity>> = flagDao.getAllFlags()
+
+    suspend fun getAllFlagsSync(): List<FlagEntity> = flagDao.getAllFlagsSync()
+
+    suspend fun insertFlag(flag: FlagEntity): Long = flagDao.insert(flag)
+
+    suspend fun updateFlag(flag: FlagEntity) = flagDao.update(flag)
+
+    suspend fun deleteFlag(flag: FlagEntity) = flagDao.delete(flag)
+
+    suspend fun getFlagsForTask(taskId: Long): List<FlagEntity> =
+        taskFlagDao.getFlagsForTask(taskId)
+
+    suspend fun addFlagToTask(taskId: Long, flagId: Long) =
+        taskFlagDao.insert(TaskFlagCrossRef(taskId, flagId))
+
+    suspend fun removeFlagFromTask(taskId: Long, flagId: Long) =
+        taskFlagDao.deleteByTaskAndFlag(taskId, flagId)
+
+    suspend fun saveTaskFlags(taskId: Long, flagIds: List<Long>) {
+        taskFlagDao.deleteAllForTask(taskId)
+        flagIds.forEach { fid -> taskFlagDao.insert(TaskFlagCrossRef(taskId, fid)) }
+    }
+
+    // ── Reminder operations ──
+
+    suspend fun getRemindersForTask(taskId: Long): List<ReminderEntity> =
+        reminderDao.getRemindersForTask(taskId)
+
+    suspend fun insertReminder(reminder: ReminderEntity): Long =
+        reminderDao.insert(reminder)
+
+    suspend fun updateReminder(reminder: ReminderEntity) =
+        reminderDao.update(reminder)
+
+    suspend fun deleteReminder(reminder: ReminderEntity) =
+        reminderDao.delete(reminder)
+
+    suspend fun getEnabledLocationReminders(): List<ReminderEntity> =
+        reminderDao.getEnabledLocationReminders()
+
+    suspend fun getOverdueTimeReminders(now: Long): List<ReminderEntity> =
+        reminderDao.getOverdueTimeReminders(now)
+
+    // ── Profile Template operations ──
+
+    fun getAllTemplates(): Flow<List<ProfileTemplateEntity>> =
+        profileTemplateDao.getAllTemplates()
+
+    suspend fun insertTemplate(template: ProfileTemplateEntity) =
+        profileTemplateDao.insert(template)
+
+    suspend fun deleteTemplate(template: ProfileTemplateEntity) =
+        profileTemplateDao.delete(template)
+
+    // ── View operations ──
+
+    fun getAllViews(): Flow<List<ViewEntity>> = viewDao.getAllViews()
+
+    suspend fun getAllViewsSync(): List<ViewEntity> = viewDao.getAllViewsSync()
+
+    suspend fun insertView(view: ViewEntity): Long = viewDao.insert(view)
+
+    suspend fun updateView(view: ViewEntity) = viewDao.update(view)
+
+    suspend fun deleteView(view: ViewEntity) = viewDao.delete(view)
 }

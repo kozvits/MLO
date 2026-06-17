@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "com.mlo.app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.mlo.app"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
 
@@ -107,8 +107,15 @@ dependencies {
     // Gson
     implementation(libs.gson)
 
+    // OkHttp (for Dropbox API)
+    implementation(libs.okhttp)
+
     // Play Services Location
     implementation(libs.play.services.location)
+
+    // Glance (Widgets)
+    implementation(libs.glance)
+    implementation(libs.glance.appwidget)
 
     // Testing
     testImplementation(libs.junit)

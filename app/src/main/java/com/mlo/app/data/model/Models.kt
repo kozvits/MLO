@@ -1,95 +1,146 @@
 package com.mlo.app.data.model
 
-/**
- * UI-friendly representation of a task with computed fields
- */
-data class TaskItem(
+import com.mlo.app.data.local.*
+import kotlinx.coroutines.flow.Flow
+
+// ── UI Models ──
+
+data class FlagModel(
     val id: Long,
     val name: String,
-    val parentId: Long?,
-    val startDate: Long?,
-    val dueDate: Long?,
-    val durationMinutes: Int?,
-    val importance: Int,
-    val urgency: Int,
-    val effectiveImportance: Int,
-    val effectiveUrgency: Int,
-    val contexts: List<String>,
-    val dependencyIds: List<Long>,
-    val goalId: Long?,
-    val projectId: Long?,
-    val status: TaskStatus,
-    val weeklyGoalWeight: Double,
-    val flags: Set<String>,
-    val locationLat: Double?,
-    val locationLon: Double?,
-    val locationRadiusMeters: Int?,
-    val isRecurring: Boolean,
-    val recurringPattern: String?,
-    val notes: String?,
-    val priorityScore: Double,
-    val isActive: Boolean,
-    val depth: Int,
-    val hasChildren: Boolean,
-    val sortOrder: Int,
-    val createdAt: Long,
-    val updatedAt: Long
-)
-
-enum class TaskStatus {
-    ACTIVE,
-    COMPLETED,
-    DEFERRED,
-    DELEGATED;
-
+    val label: String,
+    val color: Int?,
+    val iconName: String?,
+    val isActive: Boolean = false
+) {
     companion object {
-        fun fromString(s: String): TaskStatus = when (s.uppercase()) {
-            "ACTIVE" -> ACTIVE
-            "COMPLETED" -> COMPLETED
-            "DEFERRED" -> DEFERRED
-            "DELEGATED" -> DELEGATED
-            else -> ACTIVE
-        }
+        fun fromEntity(entity: FlagEntity) = FlagModel(
+            id = entity.id,
+            name = entity.name,
+            label = entity.label,
+            color = entity.color,
+            iconName = entity.iconName
+        )
+        fun defaultSet(): List<FlagModel> = listOf(
+            FlagModel(0, "STARRED", "Избранное", 0xFFFFD700.toInt(), "star"),
+            FlagModel(0, "DELEGATED", "Делегировано", 0xFF2196F3.toInt(), "person"),
+            FlagModel(0, "WAITING", "Ожидание", 0xFFFF9800.toInt(), "hourglass_empty"),
+            FlagModel(0, "URGENT", "Срочно", 0xFFF44336.toInt(), "priority_high"),
+            FlagModel(0, "SOMEDAY", "Когда-нибудь", 0xFF9C27B0.toInt(), "event_note"),
+        )
     }
 }
 
-/**
- * Configuration for priority score calculation
- */
-data class PriorityConfig(
-    val wI: Double = 0.4,   // Importance weight
-    val wU: Double = 0.3,   // Urgency weight
-    val wT: Double = 0.2,   // Time factor weight
-    val wG: Double = 0.1    // Weekly Goal weight
+data class ReminderDisplayModel(
+    val id: Long,
+    val taskId: Long,
+    val taskTitle: String,
+    val type: String,
+    val triggerTime: Long?,
+    val locationLat: Double?,
+    val locationLon: Double?,
+    val locationRadiusMeters: Int,
+    val isEnabled: Boolean
 )
 
-/**
- * Saved view/filter configuration
- */
-data class SavedView(
-    val id: String = "",
+data class ViewFilter(
+    val viewId: Long? = null,
+    val name: String = "",
+    val contextIds: List<Long> = emptyList(),
+    val flagIds: List<Long> = emptyList(),
+    val statusFilter: String = "",
+    val searchQuery: String = "",
+    val hasDueDate: Boolean = false,
+    val isOverdue: Boolean = false,
+    val groupBy: String = "NONE",
+    val sortBy: String = "PRIORITY",
+    val isAscending: Boolean = false,
+    val showCompleted: Boolean = false,
+    val showArchived: Boolean = false
+) {
+    fun toEntity(): ViewEntity = ViewEntity(
+        id = viewId ?: 0,
+        name = name,
+        contextFilter = contextIds.joinToString(","),
+        flagFilter = flagIds.joinToString(","),
+        statusFilter = statusFilter,
+        searchQuery = searchQuery,
+        hasDueDate = hasDueDate,
+        isOverdue = isOverdue,
+        groupBy = groupBy,
+        sortBy = sortBy,
+        isAscending = isAscending,
+        showCompleted = showCompleted,
+        showArchived = showArchived
+    )
+
+    companion object {
+        fun fromEntity(entity: ViewEntity) = ViewFilter(
+            viewId = entity.id,
+            name = entity.name,
+            contextIds = entity.contextFilter.split(",").mapNotNull { it.trim().toLongOrNull() },
+            flagIds = entity.flagFilter.split(",").mapNotNull { it.trim().toLongOrNull() },
+            statusFilter = entity.statusFilter,
+            searchQuery = entity.searchQuery,
+            hasDueDate = entity.hasDueDate,
+            isOverdue = entity.isOverdue,
+            groupBy = entity.groupBy,
+            sortBy = entity.sortBy,
+            isAscending = entity.isAscending,
+            showCompleted = entity.showCompleted,
+            showArchived = entity.showArchived
+        )
+    }
+}
+
+data class TemplateProfile(
+    val id: Long,
     val name: String,
-    val contextFilter: List<String> = emptyList(),
-    val statusFilter: TaskStatus? = null,
-    val sortBy: SortBy = SortBy.PRIORITY,
-    val groupBy: GroupBy = GroupBy.NONE,
-    val isAscending: Boolean = false
+    val description: String?,
+    val category: String,
+    val isBuiltIn: Boolean,
+    val templateJson: String
+) {
+    companion object {
+        fun fromEntity(entity: ProfileTemplateEntity) = TemplateProfile(
+            id = entity.id,
+            name = entity.name,
+            description = entity.description,
+            category = entity.category,
+            isBuiltIn = entity.isBuiltIn,
+            templateJson = entity.templateJson
+        )
+    }
+}
+
+data class StatisticsData(
+    val totalTasks: Int = 0,
+    val activeTasks: Int = 0,
+    val completedToday: Int = 0,
+    val completedThisWeek: Int = 0,
+    val completedThisMonth: Int = 0,
+    val overdueTasks: Int = 0,
+    val tasksByContext: Map<String, Int> = emptyMap(),
+    val tasksByGoal: Map<String, Int> = emptyMap(),
+    val completionRate: Float = 0f,
+    val avgPriority: Double = 0.0,
+    val trendWeek: List<DailyStats> = emptyList()
 )
 
-enum class SortBy {
-    PRIORITY,
-    DUE_DATE,
-    CREATED_DATE,
-    NAME,
-    IMPORTANCE,
-    URGENCY,
-    CUSTOM
-}
+data class DailyStats(
+    val date: String,
+    val completed: Int,
+    val added: Int
+)
 
-enum class GroupBy {
-    NONE,
-    CONTEXT,
-    GOAL,
-    PROJECT,
-    STATUS
-}
+// Navigation state
+data class NavigationState(
+    val currentTab: Int = 0,
+    val selectedTaskId: Long? = null,
+    val showFlagManager: Boolean = false,
+    val showContextManager: Boolean = false,
+    val showViewManager: Boolean = false,
+    val showTemplateManager: Boolean = false,
+    val showStatistics: Boolean = false,
+    val showSettings: Boolean = false
+)

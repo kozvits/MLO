@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- Notification for sync workers -->
+    <!-- Notification -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Foreground service for location -->
@@ -23,6 +23,13 @@
 
     <!-- Boot completed for rescheduling workers -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Quick Settings Tile -->
+    <uses-permission android:name="android.permission.BIND_QUICK_SETTINGS_TILE" />
+
+    <!-- Schedule exact alarms for reminders -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="33" />
 
     <application
         android:name=".MloApplication"
@@ -44,7 +51,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Dropbox OAuth2 callback: db-APP_KEY://1/connect#access_token=... -->
+            <!-- Dropbox OAuth2 callback -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -54,6 +61,33 @@
                     android:host="1" />
             </intent-filter>
         </activity>
+
+        <!-- Geofence broadcast receiver -->
+        <receiver
+            android:name=".domain.notification.GeofenceBroadcastReceiver"
+            android:exported="false" />
+
+        <!-- Quick Settings Tile -->
+        <service
+            android:name=".ui.widgets.QuickTaskTileService"
+            android:exported="true"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- Widget receiver -->
+        <receiver
+            android:name=".ui.widgets.TodayTasksWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/today_tasks_widget_info" />
+        </receiver>
 
         <!-- Remove default WorkManager initializer (we use on-demand init via Configuration.Provider) -->
         <provider

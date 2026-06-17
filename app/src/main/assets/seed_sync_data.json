@@ -1,0 +1,196 @@
+{
+  "deviceId": "template-device",
+  "syncTimestamp": 1787000000000,
+  "tasks": [
+    {
+      "id": 1001,
+      "name": "Настроить MLO",
+      "status": "ACTIVE",
+      "importance": 100,
+      "urgency": 100,
+      "dueDate": null,
+      "createdAt": 1787000000000,
+      "updatedAt": 1787000000000,
+      "contexts": "@Computer",
+      "parentId": null,
+      "sortOrder": 1,
+      "goalId": null,
+      "isCompleted": false,
+      "completedAt": null
+    },
+    {
+      "id": 1002,
+      "name": "Купить продукты",
+      "status": "ACTIVE",
+      "importance": 50,
+      "urgency": 80,
+      "dueDate": null,
+      "createdAt": 1787000000000,
+      "updatedAt": 1787000000000,
+      "contexts": "@Home",
+      "parentId": null,
+      "sortOrder": 2,
+      "goalId": 2001,
+      "isCompleted": false,
+      "completedAt": null
+    },
+    {
+      "id": 1003,
+      "name": "Заказать подарок маме",
+      "status": "ACTIVE",
+      "importance": 90,
+      "urgency": 60,
+      "dueDate": 1787702400000,
+      "createdAt": 1787000000000,
+      "updatedAt": 1787000000000,
+      "contexts": "@Computer",
+      "parentId": null,
+      "sortOrder": 3,
+      "goalId": 2001,
+      "isCompleted": false,
+      "completedAt": null
+    },
+    {
+      "id": 1004,
+      "name": "Прочитать «Успеватель»",
+      "status": "ACTIVE",
+      "importance": 70,
+      "urgency": 30,
+      "dueDate": null,
+      "createdAt": 1787000000000,
+      "updatedAt": 1787000000000,
+      "contexts": "@Anywhere",
+      "parentId": null,
+      "sortOrder": 4,
+      "goalId": 2002,
+      "isCompleted": false,
+      "completedAt": null
+    },
+    {
+      "id": 1005,
+      "name": "Сделать зарядку",
+      "status": "COMPLETED",
+      "importance": 80,
+      "urgency": 100,
+      "dueDate": null,
+      "createdAt": 1787000000000,
+      "updatedAt": 1787000000000,
+      "contexts": "@Home",
+      "parentId": null,
+      "sortOrder": 5,
+      "goalId": 2002,
+      "isCompleted": true,
+      "completedAt": 1787000000000
+    }
+  ],
+  "contexts": [
+    {
+      "id": 1,
+      "name": "@Computer",
+      "label": "Компьютер",
+      "color": -13382656,
+      "includeIds": ""
+    },
+    {
+      "id": 2,
+      "name": "@Home",
+      "label": "Дом",
+      "color": -16711936,
+      "includeIds": ""
+    },
+    {
+      "id": 3,
+      "name": "@Anywhere",
+      "label": "Любое место",
+      "color": -1,
+      "includeIds": ""
+    },
+    {
+      "id": 4,
+      "name": "@Phone",
+      "label": "Телефон",
+      "color": -16776961,
+      "includeIds": ""
+    },
+    {
+      "id": 5,
+      "name": "@Office",
+      "label": "Офис",
+      "color": -65536,
+      "includeIds": ""
+    }
+  ],
+  "goals": [
+    {
+      "id": 2001,
+      "name": "Семья",
+      "title": "Семейные цели",
+      "color": -13382656
+    },
+    {
+      "id": 2002,
+      "name": "Здоровье",
+      "title": "Саморазвитие и здоровье",
+      "color": -16711936
+    },
+    {
+      "id": 2003,
+      "name": "Работа",
+      "title": "Рабочие проекты",
+      "color": -65536
+    }
+  ],
+  "flags": [
+    {
+      "id": 1,
+      "name": "STARRED",
+      "label": "Избранное",
+      "color": -769226,
+      "iconName": "star"
+    },
+    {
+      "id": 2,
+      "name": "DELEGATED",
+      "label": "Делегировано",
+      "color": -13382656,
+      "iconName": "person"
+    },
+    {
+      "id": 3,
+      "name": "WAITING",
+      "label": "Ожидание",
+      "color": -16711936,
+      "iconName": "schedule"
+    },
+    {
+      "id": 4,
+      "name": "URGENT",
+      "label": "Срочно",
+      "color": -65536,
+      "iconName": "priority_high"
+    }
+  ],
+  "views": [
+    {
+      "id": 1,
+      "name": "Все задачи",
+      "groupBy": "NONE",
+      "sortBy": "PRIORITY",
+      "isAscending": false
+    },
+    {
+      "id": 2,
+      "name": "По контекстам",
+      "groupBy": "CONTEXT",
+      "sortBy": "PRIORITY",
+      "isAscending": true
+    },
+    {
+      "id": 3,
+      "name": "По целям",
+      "groupBy": "GOAL",
+      "sortBy": "PRIORITY",
+      "isAscending": true
+    }
+  ]
+}

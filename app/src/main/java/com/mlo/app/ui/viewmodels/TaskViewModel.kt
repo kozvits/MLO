@@ -1,265 +1,221 @@
 package com.mlo.app.ui.viewmodels
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.mlo.app.data.local.TaskEntity
-import com.mlo.app.data.model.*
+import com.mlo.app.data.local.*
+import com.mlo.app.data.model.GContextModel
 import com.mlo.app.data.repository.TaskRepository
 import com.mlo.app.domain.PriorityEngine
+import com.mlo.app.domain.notification.GeofenceSyncWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class TaskUiState(
-    val allTasks: List<TaskEntity> = emptyList(),
-    val flatTree: List<Pair<TaskEntity, Int>> = emptyList(),
-    val activeTasks: List<Pair<TaskEntity, Double>> = emptyList(),
-    val selectedTaskId: Long? = null,
-    val expandedTaskIds: Set<Long> = emptySet(),
-    val focusedTaskId: Long? = null,
-    val searchQuery: String = "",
-    val isLoading: Boolean = false,
-    val priorityConfig: PriorityConfig = PriorityConfig(),
-    val sortBy: SortBy = SortBy.PRIORITY,
-    val groupBy: GroupBy = GroupBy.NONE,
-    val editorTask: TaskEntity? = null,
-    val showEditor: Boolean = false
-)
-
 @HiltViewModel
 class TaskViewModel @Inject constructor(
+    application: Application,
     private val repository: TaskRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(TaskUiState())
     val state: StateFlow<TaskUiState> = _state.asStateFlow()
 
-    private val _searchQuery = MutableStateFlow("")
-
     init {
-        loadTasks()
+        loadAllData()
     }
 
-    private fun loadTasks() {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun loadAllData() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-
-            repository.getAllTasks().collect { tasks ->
-                _state.update { current ->
-                    val flat = PriorityEngine.buildFlatTree(tasks)
-                    val active = if (current.searchQuery.isBlank()) {
-                        PriorityEngine.getActiveTasksScored(tasks, current.priorityConfig)
-                    } else {
-                        emptyList()
+            repository.getAllTasks().collect { allTasks ->
+                val activeTasks = allTasks
+                    .filter { it.status == "ACTIVE" }
+                    .map { task ->
+                        val score = PriorityEngine.calculatePriorityScore(
+                            task = task,
+                            allTasks = allTasks
+                        )
+                        task to score
                     }
+                    .sortedByDescending { it.second }
 
-                    current.copy(
-                        allTasks = tasks,
-                        flatTree = flat,
-                        activeTasks = active,
-                        isLoading = false
-                    )
+                _state.update {
+                    it.copy(allTasks = allTasks, activeTasks = activeTasks)
                 }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.getAllContexts().collect { ctxList ->
+                val models = ctxList.map { GContextModel.fromEntity(it) }
+                _state.update { it.copy(contexts = models) }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.getAllGoals().collect { goals ->
+                _state.update { it.copy(goals = goals) }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.getAllFlags().collect { flags ->
+                _state.update { it.copy(flags = flags) }
             }
         }
     }
 
     // ── Task CRUD ──
 
-    fun createTask(name: String, parentId: Long? = null) {
-        viewModelScope.launch {
-            val sortOrder = if (parentId != null) {
-                repository.getMaxChildSortOrder(parentId) + 1
-            } else {
-                repository.getMaxRootSortOrder() + 1
-            }
-
-            val task = TaskEntity(
-                name = name,
-                parentId = parentId,
-                sortOrder = sortOrder
-            )
-            repository.insertTask(task)
-        }
+    fun toggleComplete(taskId: Long) {
+        viewModelScope.launch { repository.toggleComplete(taskId) }
     }
 
-    fun createTaskWithDetails(
-        name: String,
-        parentId: Long? = null,
-        startDate: Long? = null,
-        dueDate: Long? = null,
-        durationMinutes: Int? = null,
-        importance: Int = 100,
-        urgency: Int = 100,
-        contexts: List<String> = emptyList(),
-        notes: String? = null
-    ) {
-        viewModelScope.launch {
-            val sortOrder = if (parentId != null) {
-                repository.getMaxChildSortOrder(parentId) + 1
-            } else {
-                repository.getMaxRootSortOrder() + 1
-            }
-
-            val task = TaskEntity(
-                name = name,
-                parentId = parentId,
-                startDate = startDate,
-                dueDate = dueDate,
-                durationMinutes = durationMinutes,
-                importance = importance,
-                urgency = urgency,
-                contexts = contexts.joinToString(","),
-                notes = notes,
-                sortOrder = sortOrder
-            )
-            repository.insertTask(task)
-        }
+    fun deleteTask(taskId: Long) {
+        viewModelScope.launch { repository.deleteTaskById(taskId) }
     }
 
-    fun saveTask(task: TaskEntity) {
+    fun insertTask(task: TaskEntity, parentId: Long?) {
         viewModelScope.launch {
-            if (task.id == 0L) {
-                val sortOrder = if (task.parentId != null) {
-                    repository.getMaxChildSortOrder(task.parentId!!) + 1
-                } else {
-                    repository.getMaxRootSortOrder() + 1
-                }
-                repository.insertTask(task.copy(sortOrder = sortOrder))
+            val sortOrder = if (parentId == null) {
+                (repository.getMaxRootSortOrder() ?: -1) + 1
             } else {
-                repository.updateTask(task.copy(updatedAt = System.currentTimeMillis()))
+                (repository.getMaxChildSortOrder(parentId) ?: -1) + 1
             }
-            closeEditor()
+            val newTask = task.copy(
+                parentId = parentId,
+                sortOrder = sortOrder,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
+            )
+            repository.insertTask(newTask)
         }
     }
 
     fun updateTask(task: TaskEntity) {
+        viewModelScope.launch { repository.updateTask(task) }
+    }
+
+    suspend fun getTaskById(id: Long): TaskEntity? = repository.getTaskById(id)
+
+    // ── Flags for tasks ──
+
+    fun loadTaskFlags(taskId: Long) {
         viewModelScope.launch {
-            repository.updateTask(task.copy(updatedAt = System.currentTimeMillis()))
-            closeEditor()
+            val flags = repository.getFlagsForTask(taskId)
+            val map = _state.value.taskFlags.toMutableMap()
+            map[taskId] = flags
+            _state.update { it.copy(taskFlags = map) }
         }
     }
 
-    fun deleteTask(taskId: Long) {
+    fun addFlagToTask(taskId: Long, flagId: Long) {
+        viewModelScope.launch { repository.addFlagToTask(taskId, flagId) }
+    }
+
+    fun removeFlagFromTask(taskId: Long, flagId: Long) {
+        viewModelScope.launch { repository.removeFlagFromTask(taskId, flagId) }
+    }
+
+    fun saveTaskFlags(taskId: Long, flagIds: List<Long>) {
+        viewModelScope.launch { repository.saveTaskFlags(taskId, flagIds) }
+    }
+
+    // ── Reminders ──
+
+    fun loadTaskReminders(taskId: Long) {
         viewModelScope.launch {
-            repository.deleteTaskById(taskId)
+            val reminders = repository.getRemindersForTask(taskId)
+            val map = _state.value.reminders.toMutableMap()
+            map[taskId] = reminders
+            _state.update { it.copy(reminders = map) }
         }
     }
 
-    fun toggleComplete(taskId: Long) {
+    fun addTimeReminder(taskId: Long, triggerTime: Long) {
         viewModelScope.launch {
-            val task = repository.getTaskById(taskId) ?: return@launch
-
-            if (task.status == "COMPLETED") {
-                repository.toggleComplete(taskId)
-            } else {
-                repository.toggleComplete(taskId)
-
-                // Handle recurring tasks
-                if (task.isRecurring && task.recurringPattern != null) {
-                    val nextDate = PriorityEngine.computeNextOccurrence(
-                        task.recurringPattern,
-                        task.dueDate ?: System.currentTimeMillis()
-                    )
-                    val newTask = task.copy(
-                        id = 0,
-                        status = "ACTIVE",
-                        dueDate = nextDate,
-                        startDate = System.currentTimeMillis(),
-                        parentId = task.parentId
-                    )
-                    repository.insertTask(newTask)
-                }
-            }
+            repository.insertReminder(
+                ReminderEntity(
+                    taskId = taskId,
+                    type = "TIME",
+                    triggerTime = triggerTime
+                )
+            )
+            loadTaskReminders(taskId)
         }
     }
 
-    fun moveTask(taskId: Long, newParentId: Long?) {
+    fun addLocationReminder(
+        taskId: Long,
+        lat: Double,
+        lon: Double,
+        radiusMeters: Int = 100
+    ) {
         viewModelScope.launch {
-            val sortOrder = if (newParentId != null) {
-                repository.getMaxChildSortOrder(newParentId) + 1
-            } else {
-                repository.getMaxRootSortOrder() + 1
-            }
-            repository.moveTask(taskId, newParentId, sortOrder)
+            repository.insertReminder(
+                ReminderEntity(
+                    taskId = taskId,
+                    type = "LOCATION",
+                    locationLat = lat,
+                    locationLon = lon,
+                    locationRadiusMeters = radiusMeters
+                )
+            )
+            val ctx = getApplication<Application>()
+            GeofenceSyncWorker.schedule(ctx)
+            loadTaskReminders(taskId)
         }
     }
 
-    // ── Editor ──
-
-    fun openEditor(taskId: Long? = null) {
+    fun deleteReminder(reminder: ReminderEntity) {
         viewModelScope.launch {
-            val task = if (taskId != null) repository.getTaskById(taskId) else null
-            _state.update { it.copy(editorTask = task, showEditor = true) }
+            repository.deleteReminder(reminder)
+            loadTaskReminders(reminder.taskId)
         }
     }
 
-    fun openNewTaskEditor(parentId: Long? = null) {
-        val defaults = if (parentId != null) {
-            TaskEntity(name = "", parentId = parentId, sortOrder = 0)
-        } else {
-            TaskEntity(name = "")
+    fun toggleReminder(reminder: ReminderEntity) {
+        viewModelScope.launch {
+            repository.updateReminder(reminder.copy(isEnabled = !reminder.isEnabled))
+            loadTaskReminders(reminder.taskId)
         }
-        _state.update { it.copy(editorTask = defaults, showEditor = true) }
     }
 
-    fun closeEditor() {
-        _state.update { it.copy(editorTask = null, showEditor = false) }
-    }
+    // ── Tree expansion ──
 
-    // ── Parsed input ──
-
-    fun createTaskFromParsedInput(input: String, parentId: Long? = null) {
-        val parsed = PriorityEngine.parseTaskInput(input)
-        createTaskWithDetails(
-            name = parsed.name,
-            parentId = parentId,
-            dueDate = parsed.dueDate,
-            durationMinutes = parsed.durationMinutes,
-            contexts = parsed.contexts
-        )
-    }
-
-    // ── Focus / Expand ──
-
-    fun focusTask(taskId: Long) {
-        _state.update { it.copy(focusedTaskId = taskId) }
-    }
-
-    fun clearFocus() {
-        _state.update { it.copy(focusedTaskId = null) }
-    }
-
-    fun toggleExpand(taskId: Long) {
-        _state.update { current ->
-            val expanded = current.expandedTaskIds.toMutableSet()
-            if (expanded.contains(taskId)) expanded.remove(taskId) else expanded.add(taskId)
-            current.copy(expandedTaskIds = expanded)
+    fun toggleExpand(rootId: Long) {
+        _state.update {
+            val expanded = it.expandedTaskIds.toMutableSet()
+            if (expanded.contains(rootId)) expanded.remove(rootId)
+            else expanded.add(rootId)
+            it.copy(expandedTaskIds = expanded)
         }
     }
 
     fun expandAll() {
-        _state.update { current ->
-            current.copy(expandedTaskIds = current.allTasks.map { it.id }.toSet())
+        _state.update {
+            val allIds = it.allTasks.map { task -> task.id }.toSet()
+            it.copy(expandedTaskIds = allIds + 0L)
         }
     }
 
     fun collapseAll() {
-        _state.update { it.copy(expandedTaskIds = emptySet()) }
+        _state.update { it.copy(expandedTaskIds = setOf(0L)) }
     }
 
-    // ── Search ──
-
-    fun onSearchQueryChanged(query: String) {
-        _searchQuery.value = query
-        _state.update { it.copy(searchQuery = query) }
+    fun focusTask(taskId: Long) {
+        _state.update {
+            it.copy(
+                selectedTaskId = taskId,
+                focusedTaskId = if (it.focusedTaskId == taskId) null else taskId
+            )
+        }
     }
 
-    // ── Priority Config ──
-
-    fun updatePriorityConfig(config: PriorityConfig) {
-        _state.update { it.copy(priorityConfig = config) }
+    fun selectTask(taskId: Long) {
+        _state.update { it.copy(selectedTaskId = taskId) }
     }
 }

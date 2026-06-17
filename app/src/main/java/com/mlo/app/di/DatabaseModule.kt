@@ -33,13 +33,43 @@ object DatabaseModule {
     fun provideGoalDao(database: TaskDatabase): GoalDao = database.goalDao()
 
     @Provides
+    fun provideFlagDao(database: TaskDatabase): FlagDao = database.flagDao()
+
+    @Provides
+    fun provideTaskFlagDao(database: TaskDatabase): TaskFlagDao = database.taskFlagDao()
+
+    @Provides
+    fun provideReminderDao(database: TaskDatabase): ReminderDao = database.reminderDao()
+
+    @Provides
+    fun provideProfileTemplateDao(database: TaskDatabase): ProfileTemplateDao = database.profileTemplateDao()
+
+    @Provides
+    fun provideViewDao(database: TaskDatabase): ViewDao = database.viewDao()
+
+    @Provides
     @Singleton
     fun provideTaskRepository(
         taskDao: TaskDao,
         contextDao: ContextDao,
         contextHourDao: ContextHourDao,
-        goalDao: GoalDao
+        goalDao: GoalDao,
+        flagDao: FlagDao,
+        taskFlagDao: TaskFlagDao,
+        reminderDao: ReminderDao,
+        profileTemplateDao: ProfileTemplateDao,
+        viewDao: ViewDao
     ): TaskRepository {
-        return TaskRepository(taskDao, contextDao, contextHourDao, goalDao)
+        return TaskRepository(
+            taskDao = taskDao,
+            contextDao = contextDao,
+            contextHourDao = contextHourDao,
+            goalDao = goalDao,
+            flagDao = flagDao,
+            taskFlagDao = taskFlagDao,
+            reminderDao = reminderDao,
+            profileTemplateDao = profileTemplateDao,
+            viewDao = viewDao
+        )
     }
 }
