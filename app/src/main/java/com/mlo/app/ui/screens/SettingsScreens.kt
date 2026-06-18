@@ -262,6 +262,7 @@ fun GoalManagerDialog(
 ) {
     val state by viewModel.state.collectAsState()
     var newGoalName by remember { mutableStateOf("") }
+    var editingGoal by remember { mutableStateOf<GoalEntity?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -316,6 +317,9 @@ fun GoalManagerDialog(
                                         style = MaterialTheme.typography.bodyMedium,
                                         modifier = Modifier.weight(1f)
                                     )
+                                    IconButton(onClick = { editingGoal = goal }) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Изменить", modifier = Modifier.size(18.dp))
+                                    }
                                     IconButton(onClick = { viewModel.deleteGoal(goal) }) {
                                         Icon(Icons.Default.Delete, contentDescription = "Удалить", modifier = Modifier.size(18.dp))
                                     }
@@ -333,4 +337,57 @@ fun GoalManagerDialog(
         },
         modifier = modifier
     )
+
+    // ── Edit Goal Dialog ──
+    if (editingGoal != null) {
+        val goal = editingGoal!!
+        var editName by remember(goal.id) { mutableStateOf(goal.name) }
+        var editTitle by remember(goal.id) { mutableStateOf(goal.title) }
+
+        AlertDialog(
+            onDismissRequest = { editingGoal = null },
+            title = { Text("Изменить цель") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = editName,
+                        onValueChange = { editName = it },
+                        label = { Text("Имя") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = editTitle,
+                        onValueChange = { editTitle = it },
+                        label = { Text("Название") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (editName.isNotBlank()) {
+                            viewModel.updateGoal(
+                                goal.copy(
+                                    name = editName.trim(),
+                                    title = editTitle.trim()
+                                )
+                            )
+                            editingGoal = null
+                        }
+                    },
+                    enabled = editName.isNotBlank()
+                ) {
+                    Text("Сохранить")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingGoal = null }) {
+                    Text("Отмена")
+                }
+            }
+        )
+    }
 }

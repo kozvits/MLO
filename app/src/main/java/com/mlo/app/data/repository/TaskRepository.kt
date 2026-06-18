@@ -36,12 +36,28 @@ class TaskRepository @Inject constructor(
 
     suspend fun insertTask(task: TaskEntity): Long = taskDao.insertTask(task)
 
-    suspend fun updateTask(task: TaskEntity) = taskDao.updateTask(task)
+    suspend fun updateTask(task: TaskEntity) {
+        // Don't allow completion if there are incomplete subtasks
+        if (task.status == "COMPLETED") {
+            val children = taskDao.getTasksByParentSync(task.id)
+            if (children.any { it.status != "COMPLETED" }) {
+                return // has incomplete subtasks, abort
+            }
+        }
+        taskDao.updateTask(task)
+    }
 
     suspend fun deleteTaskById(id: Long) = taskDao.deleteTaskById(id)
 
     suspend fun toggleComplete(id: Long) {
         val task = taskDao.getTaskById(id) ?: return
+        // Don't allow completion if there are incomplete subtasks
+        if (task.status != "COMPLETED") {
+            val children = taskDao.getTasksByParentSync(id)
+            if (children.any { it.status != "COMPLETED" }) {
+                return // has incomplete subtasks, abort
+            }
+        }
         val newStatus = if (task.status == "COMPLETED") "ACTIVE" else "COMPLETED"
         taskDao.updateTask(task.copy(status = newStatus, updatedAt = System.currentTimeMillis()))
     }

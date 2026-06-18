@@ -542,4 +542,8 @@ class AppViewModel @Inject constructor(
     fun deleteGoal(goal: GoalEntity) {
         viewModelScope.launch { repository.deleteGoal(goal) }
     }
+
+    fun updateGoal(goal: GoalEntity) {
+        viewModelScope.launch { repository.updateGoal(goal) }
+    }
 }

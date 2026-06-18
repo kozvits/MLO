@@ -21,7 +21,7 @@ import java.util.*
 @Composable
 fun TaskEditDialog(
     taskViewModel: TaskViewModel,
-    taskId: Long?, // null = создание новой задачи, non-null = редактирование
+    taskId: Long?, // null = новая задача, non-null = редактирование
     onDismiss: () -> Unit
 ) {
     val state by taskViewModel.state.collectAsState()
@@ -139,7 +139,6 @@ fun TaskEditDialog(
                                 Icon(Icons.Default.CalendarMonth, contentDescription = "Выбрать дату")
                             }
                         }
-                        // Inline date picker
                         if (showDatePicker) {
                             DatePickerDialog(
                                 initialDateMillis = dueDateMillis,
@@ -223,7 +222,7 @@ fun TaskEditDialog(
                         }
                     }
 
-                    // Context picker dropdown
+                    // Context picker
                     if (showContextPicker && state.contexts.isNotEmpty()) {
                         item {
                             Card(modifier = Modifier.fillMaxWidth()) {
@@ -250,7 +249,7 @@ fun TaskEditDialog(
                         }
                     }
 
-                    // Goal picker dropdown
+                    // Goal picker
                     if (showGoalPicker && state.goals.isNotEmpty()) {
                         item {
                             Card(modifier = Modifier.fillMaxWidth()) {
@@ -277,7 +276,7 @@ fun TaskEditDialog(
                         }
                     }
 
-                    // Flag picker dropdown
+                    // Flag picker
                     if (showFlagPicker && state.flags.isNotEmpty()) {
                         item {
                             Card(modifier = Modifier.fillMaxWidth()) {
@@ -293,11 +292,8 @@ fun TaskEditDialog(
                                             Checkbox(
                                                 checked = isSelected,
                                                 onCheckedChange = { checked ->
-                                                    if (checked) {
-                                                        currentFlags.add(flag.name)
-                                                    } else {
-                                                        currentFlags.remove(flag.name)
-                                                    }
+                                                    if (checked) currentFlags.add(flag.name)
+                                                    else currentFlags.remove(flag.name)
                                                     selectedFlags = currentFlags.joinToString(",")
                                                 }
                                             )
@@ -370,7 +366,7 @@ fun TaskEditDialog(
                         }
                     }
 
-                    // Add child (for existing tasks)
+                    // Add child inline form
                     if (taskId != null && showAddChildDialog) {
                         item {
                             var childName by remember { mutableStateOf("") }
@@ -415,91 +411,97 @@ fun TaskEditDialog(
 
                 // ── Bottom action buttons ──
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                 ) {
-                    // Add child task button (only for existing tasks)
+                    // "Новая подзадача" button (existing tasks only)
                     if (taskId != null) {
-                        OutlinedButton(
+                        FilledTonalButton(
                             onClick = { showAddChildDialog = !showAddChildDialog },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = MaterialTheme.shapes.medium
                         ) {
-                            Icon(Icons.Default.SubdirectoryArrowRight, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Подзадача")
+                            Icon(Icons.Default.SubdirectoryArrowRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Новая подзадача")
                         }
                     }
 
-                    Spacer(Modifier.weight(1f))
-
-                    // Delete button (only for existing tasks)
-                    if (taskId != null) {
-                        OutlinedButton(
-                            onClick = {
-                                taskViewModel.deleteTask(taskId)
-                                onDismiss()
-                            },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Удалить")
-                        }
-                    }
-
-                    // Save / Create button
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                if (taskId == null) {
-                                    val newTask = TaskEntity(
-                                        name = taskName.ifBlank { "Новая задача" },
-                                        dueDate = dueDateMillis,
-                                        durationMinutes = durationMinutes.toIntOrNull(),
-                                        importance = importance,
-                                        urgency = urgency,
-                                        status = status,
-                                        contexts = selectedContext,
-                                        goalId = selectedGoalId,
-                                        flags = selectedFlags,
-                                        notes = notes.ifBlank { null },
-                                        parentId = parentId
-                                    )
-                                    taskViewModel.insertTask(newTask, parentId)
-                                } else {
-                                    val updatedTask = existingTask?.copy(
-                                        name = taskName.ifBlank { "Новая задача" },
-                                        dueDate = dueDateMillis,
-                                        durationMinutes = durationMinutes.toIntOrNull(),
-                                        importance = importance,
-                                        urgency = urgency,
-                                        status = status,
-                                        contexts = selectedContext,
-                                        goalId = selectedGoalId,
-                                        flags = selectedFlags,
-                                        notes = notes.ifBlank { null },
-                                        updatedAt = System.currentTimeMillis()
-                                    )
-                                    if (updatedTask != null) {
-                                        taskViewModel.updateTask(updatedTask)
-                                    }
-                                }
-                                onDismiss()
-                            }
-                        },
-                        enabled = taskName.isNotBlank() || taskId == null,
-                        modifier = Modifier.weight(1f)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            if (taskId == null) Icons.Default.Add else Icons.Default.Save,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(if (taskId == null) "Создать" else "Сохранить")
+                        // Delete button (existing tasks only)
+                        if (taskId != null) {
+                            OutlinedButton(
+                                onClick = {
+                                    taskViewModel.deleteTask(taskId)
+                                    onDismiss()
+                                },
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                shape = MaterialTheme.shapes.medium,
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Удалить")
+                            }
+                        }
+
+                        // Save / Create button
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    if (taskId == null) {
+                                        val newTask = TaskEntity(
+                                            name = taskName.ifBlank { "Новая задача" },
+                                            dueDate = dueDateMillis,
+                                            durationMinutes = durationMinutes.toIntOrNull(),
+                                            importance = importance,
+                                            urgency = urgency,
+                                            status = status,
+                                            contexts = selectedContext,
+                                            goalId = selectedGoalId,
+                                            flags = selectedFlags,
+                                            notes = notes.ifBlank { null },
+                                            parentId = parentId
+                                        )
+                                        taskViewModel.insertTask(newTask, parentId)
+                                    } else {
+                                        val updatedTask = existingTask?.copy(
+                                            name = taskName.ifBlank { "Новая задача" },
+                                            dueDate = dueDateMillis,
+                                            durationMinutes = durationMinutes.toIntOrNull(),
+                                            importance = importance,
+                                            urgency = urgency,
+                                            status = status,
+                                            contexts = selectedContext,
+                                            goalId = selectedGoalId,
+                                            flags = selectedFlags,
+                                            notes = notes.ifBlank { null },
+                                            updatedAt = System.currentTimeMillis()
+                                        )
+                                        if (updatedTask != null) {
+                                            taskViewModel.updateTask(updatedTask)
+                                        }
+                                    }
+                                    onDismiss()
+                                }
+                            },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Icon(
+                                if (taskId == null) Icons.Default.Add else Icons.Default.Save,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (taskId == null) "Создать" else "Сохранить")
+                        }
                     }
                 }
             }
@@ -517,29 +519,25 @@ fun DatePickerDialog(
     val state = rememberDatePickerState(
         initialSelectedDateMillis = initialDateMillis
     )
-
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Выберите дату и время") },
-        text = {
-            DatePicker(state = state)
-        },
         confirmButton = {
             TextButton(
                 onClick = {
-                    state.selectedDateMillis?.let { millis ->
-                        onDateSelected(millis)
-                    }
-                },
-                enabled = state.selectedDateMillis != null
+                    state.selectedDateMillis?.let { onDateSelected(it) }
+                }
             ) {
-                Text("Выбрать")
+                Text("OK")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Отмена")
             }
+        },
+        title = { Text("Выбрать дату") },
+        text = {
+            DatePicker(state = state)
         }
     )
 }

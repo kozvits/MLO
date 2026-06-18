@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -116,6 +117,25 @@ fun MainScreen(
         ) == PackageManager.PERMISSION_GRANTED
         if (!hasLocation) {
             // Auto-request when users open geofence features
+        }
+    }
+
+    // ── Back button navigation ──
+    BackHandler(enabled = showFlagManager || showViewFilter || showStatistics ||
+        showProfileTemplates || showContextManager || showGoalManager ||
+        showSettings || showTaskEditId != null || showDropboxTokenDialog ||
+        showSyncIntervalDialog) {
+        when {
+            showDropboxTokenDialog -> showDropboxTokenDialog = false
+            showSyncIntervalDialog -> showSyncIntervalDialog = false
+            showTaskEditId != null -> showTaskEditId = null
+            showSettings -> showSettings = false
+            showGoalManager -> showGoalManager = false
+            showContextManager -> showContextManager = false
+            showProfileTemplates -> showProfileTemplates = false
+            showStatistics -> showStatistics = false
+            showViewFilter -> showViewFilter = false
+            showFlagManager -> showFlagManager = false
         }
     }
 
